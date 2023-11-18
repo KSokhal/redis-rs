@@ -83,10 +83,8 @@ impl<T: std::io::Read> RespReader<T> {
                     let v = self.parse()?;
                     value_arr.push(v);
                 }
-                // let mut value = Value::new(ARRAY, ValueContent::Array(value_arr));
-                let mut value = Value::Array(value_arr);
-                // value.array = Some(value_arr);
-                Ok(value)
+
+                Ok(Value::Array(value_arr))
             }
             BULK => {
                 let str_len = self.read_int()?;
@@ -94,11 +92,7 @@ impl<T: std::io::Read> RespReader<T> {
 
                 let string = self.read_str(str_len)?;
 
-                // let mut value = Value::new(BULK, ValueContent::Bulk(string));
-                let mut value = Value::Bulk(string);
-                // value.bulk = Some(string);
-
-                Ok(value)
+                Ok(Value::Bulk(string))
             }
             _ => panic!("unknown type {}", _type),
         }
