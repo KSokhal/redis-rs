@@ -13,30 +13,26 @@ pub enum Value {
     Num(i32),
     Bulk(String),
     Array(Vec<Value>),
+    Error(String),
+    Null,
 }
 
-// #[derive(Debug, PartialEq, Eq)]
-// pub struct Value {
-//     _type: char,
-//     // str: Option<String>,
-//     // num: Option<i32>,
-//     // bulk: Option<String>,
-//     // array: Option<Vec<Value>>,
-//     content: ValueContent,
-// }
-
-// impl Value {
-//     fn new(_type: char, content: ValueContent) -> Self {
-//         Self {
-//             _type,
-//             // str: None,
-//             // num: None,
-//             // bulk: None,
-//             // array: None,
-//             content,
-//         }
-//     }
-// }
+fn marshal_value(value: Value) -> Vec<u8> {
+    match value {
+        Value::Str(s) => format!("{}{}\r\n", STRING, s).into_bytes(),
+        Value::Num(n) => format!("{}{}\r\n", INTEGER, n).into_bytes(),
+        Value::Bulk(b) => format!("{}{}\r\n{}\r\n", BULK, b.len(), b).into_bytes(),
+        Value::Array(a) => {
+            let mut result = format!("{}{}\r\n", ARRAY, a.len()).into_bytes();
+            for v in a {
+                result.extend(marshal_value(v).iter());
+            }
+            result
+        }
+        Value::Error(e) => format!("{}{}\r\n", ERROR, e).into_bytes(),
+        Value::Null => "$-1\r\n".as_bytes().to_vec(),
+    }
+}
 
 pub struct RespReader<T: std::io::Read> {
     reader: BufReader<T>,
@@ -109,20 +105,40 @@ impl<T: std::io::Read> RespReader<T> {
     }
 }
 
-#[test]
-fn parse_resp() {
-    let input = "*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n";
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let mut parser = RespReader::new(BufReader::new(input.as_bytes()));
+    #[test]
+    fn parse_resp() {
+        let input = "*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n";
 
-    let mut hello = Value::Bulk("hello".to_string());
-    // hello.bulk = Some("hello".to_string());
+        let mut parser = RespReader::new(BufReader::new(input.as_bytes()));
 
-    let mut world = Value::Bulk("world".to_string());
-    // world.bulk = Some("world".to_string());
+        let expected_value = Value::Array(vec![
+            Value::Bulk("hello".to_string()),
+            Value::Bulk("world".to_string()),
+        ]);
 
-    let mut expected_value = Value::Array(vec![hello, world]);
-    // expected_value.array = Some(vec![hello, world]);
+        assert_eq!(parser.parse().unwrap(), expected_value);
+    }
 
-    assert!(parser.parse().unwrap() == expected_value);
+    #[test]
+    fn marshal_bulk_value() {
+        assert_eq!(
+            marshal_value(Value::Bulk("hello".to_string())),
+            b"$5\r\nhello\r\n"
+        );
+    }
+
+    #[test]
+    fn marshal_array_value() {
+        assert_eq!(
+            marshal_value(Value::Array(vec![
+                Value::Bulk("hello".to_string()),
+                Value::Bulk("world".to_string()),
+            ])),
+            b"*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"
+        );
+    }
 }

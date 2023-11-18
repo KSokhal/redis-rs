@@ -7,21 +7,6 @@ use crate::parser::RespReader;
 
 mod parser;
 
-// fn marshal_value(value: Value) -> [u8] {
-//     match value.content {
-//         Value::Str(s) => format!("+{}\r\n", s).into_bytes(),
-//         Value::Num(n) => format!(":{}\r\n", n).into_bytes(),
-//         Value::Bulk(b) => format!("${}\r\n{}\r\n", b.len(), b).into_bytes(),
-//         Value::Array(a) => {
-//             let mut result = format!("*{}\r\n", a.len()).into_bytes();
-//             for v in a {
-//                 result.extend(marshal_value(v).iter());
-//             }
-//             result
-//         }
-//     }
-// }
-
 fn main() -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:6379")?;
 
