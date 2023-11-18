@@ -8,22 +8,32 @@ const BULK: char = '$';
 const ARRAY: char = '*';
 
 #[derive(Debug, PartialEq, Eq)]
+enum ValueContent {
+    Str(String),
+    Num(i32),
+    Bulk(String),
+    Array(Vec<Value>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Value {
     _type: char,
-    str: Option<String>,
-    num: Option<i32>,
-    bulk: Option<String>,
-    array: Option<Vec<Value>>,
+    // str: Option<String>,
+    // num: Option<i32>,
+    // bulk: Option<String>,
+    // array: Option<Vec<Value>>,
+    content: ValueContent,
 }
 
 impl Value {
-    fn new(_type: char) -> Self {
+    fn new(_type: char, content: ValueContent) -> Self {
         Self {
             _type,
-            str: None,
-            num: None,
-            bulk: None,
-            array: None,
+            // str: None,
+            // num: None,
+            // bulk: None,
+            // array: None,
+            content,
         }
     }
 }
@@ -68,8 +78,6 @@ impl<T: std::io::Read> RespReader<T> {
 
         match _type {
             ARRAY => {
-                let mut value = Value::new(ARRAY);
-
                 let arr_len = self.read_int()?;
 
                 let mut value_arr: Vec<Value> = Vec::new();
@@ -79,18 +87,18 @@ impl<T: std::io::Read> RespReader<T> {
                     let v = self.parse()?;
                     value_arr.push(v);
                 }
-                value.array = Some(value_arr);
+                let mut value = Value::new(ARRAY, ValueContent::Array(value_arr));
+                // value.array = Some(value_arr);
                 Ok(value)
             }
             BULK => {
-                let mut value = Value::new(BULK);
-
                 let str_len = self.read_int()?;
                 self.consume_newline()?;
 
                 let string = self.read_str(str_len)?;
 
-                value.bulk = Some(string);
+                let mut value = Value::new(BULK, ValueContent::Bulk(string));
+                // value.bulk = Some(string);
 
                 Ok(value)
             }
@@ -105,14 +113,14 @@ fn parse_resp() {
 
     let mut parser = RespReader::new(BufReader::new(input.as_bytes()));
 
-    let mut hello = Value::new(BULK);
-    hello.bulk = Some("hello".to_string());
+    let mut hello = Value::new(BULK, ValueContent::Bulk("hello".to_string()));
+    // hello.bulk = Some("hello".to_string());
 
-    let mut world = Value::new(BULK);
-    world.bulk = Some("world".to_string());
+    let mut world = Value::new(BULK, ValueContent::Bulk("world".to_string()));
+    // world.bulk = Some("world".to_string());
 
-    let mut expected_value = Value::new(ARRAY);
-    expected_value.array = Some(vec![hello, world]);
+    let mut expected_value = Value::new(ARRAY, ValueContent::Array(vec![hello, world]));
+    // expected_value.array = Some(vec![hello, world]);
 
     assert!(parser.parse().unwrap() == expected_value);
 }
