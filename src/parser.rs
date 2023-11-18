@@ -29,7 +29,7 @@ impl Value {
 
     pub fn unwrap_num(&self) -> i32 {
         match self {
-            Value::Num(n) => n.clone(),
+            Value::Num(n) => *n,
             _ => panic!("not a number"),
         }
     }

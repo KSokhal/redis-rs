@@ -1,8 +1,5 @@
 use anyhow::Error;
-use std::{
-    io::{BufReader, Read, Write},
-    net::TcpStream,
-};
+use std::{io::Write, net::TcpStream};
 
 use crate::parser::{Value, ARRAY, BULK, ERROR, INTEGER, STRING};
 
