@@ -1,13 +1,13 @@
 use anyhow::Error;
 use std::io::{BufReader, Read};
 
-const STRING: char = '+';
-const ERROR: char = '-';
-const INTEGER: char = ':';
-const BULK: char = '$';
-const ARRAY: char = '*';
+pub(crate) const STRING: char = '+';
+pub(crate) const ERROR: char = '-';
+pub(crate) const INTEGER: char = ':';
+pub(crate) const BULK: char = '$';
+pub(crate) const ARRAY: char = '*';
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
     Str(String),
     Num(i32),
@@ -17,20 +17,28 @@ pub enum Value {
     Null,
 }
 
-fn marshal_value(value: Value) -> Vec<u8> {
-    match value {
-        Value::Str(s) => format!("{}{}\r\n", STRING, s).into_bytes(),
-        Value::Num(n) => format!("{}{}\r\n", INTEGER, n).into_bytes(),
-        Value::Bulk(b) => format!("{}{}\r\n{}\r\n", BULK, b.len(), b).into_bytes(),
-        Value::Array(a) => {
-            let mut result = format!("{}{}\r\n", ARRAY, a.len()).into_bytes();
-            for v in a {
-                result.extend(marshal_value(v).iter());
-            }
-            result
+impl Value {
+    pub fn unwrap_str(&self) -> String {
+        match self {
+            Value::Str(s) => s.clone(),
+            Value::Bulk(b) => b.clone(),
+            Value::Error(e) => e.clone(),
+            _ => panic!("not a string"),
         }
-        Value::Error(e) => format!("{}{}\r\n", ERROR, e).into_bytes(),
-        Value::Null => "$-1\r\n".as_bytes().to_vec(),
+    }
+
+    pub fn unwrap_num(&self) -> i32 {
+        match self {
+            Value::Num(n) => n.clone(),
+            _ => panic!("not a number"),
+        }
+    }
+
+    pub fn unwrap_arr(&self) -> Vec<Value> {
+        match self {
+            Value::Array(a) => a.clone(),
+            _ => panic!("not an array"),
+        }
     }
 }
 
@@ -39,7 +47,8 @@ pub struct RespReader<T: std::io::Read> {
 }
 
 impl<T: std::io::Read> RespReader<T> {
-    pub fn new(reader: BufReader<T>) -> Self {
+    pub fn new(stream: T) -> Self {
+        let reader = BufReader::new(stream);
         Self { reader }
     }
 
@@ -115,24 +124,5 @@ mod tests {
         ]);
 
         assert_eq!(parser.parse().unwrap(), expected_value);
-    }
-
-    #[test]
-    fn marshal_bulk_value() {
-        assert_eq!(
-            marshal_value(Value::Bulk("hello".to_string())),
-            b"$5\r\nhello\r\n"
-        );
-    }
-
-    #[test]
-    fn marshal_array_value() {
-        assert_eq!(
-            marshal_value(Value::Array(vec![
-                Value::Bulk("hello".to_string()),
-                Value::Bulk("world".to_string()),
-            ])),
-            b"*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"
-        );
     }
 }
