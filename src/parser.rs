@@ -7,6 +7,7 @@ pub(crate) const INTEGER: char = ':';
 pub(crate) const BULK: char = '$';
 pub(crate) const ARRAY: char = '*';
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value {
     Str(String),
@@ -27,6 +28,7 @@ impl Value {
         }
     }
 
+    #[allow(dead_code)]
     pub fn unwrap_num(&self) -> i32 {
         match self {
             Value::Num(n) => *n,
@@ -50,6 +52,11 @@ impl<T: std::io::Read> RespReader<T> {
     pub fn new(stream: T) -> Self {
         let reader = BufReader::new(stream);
         Self { reader }
+    }
+
+    #[allow(dead_code)]
+    pub fn set_stream(&mut self, stream: T) {
+        self.reader = BufReader::new(stream);
     }
 
     fn read_char(&mut self) -> Result<char, Error> {

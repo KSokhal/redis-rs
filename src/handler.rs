@@ -101,7 +101,7 @@ impl Datastore {
                     resp.push(Value::Bulk(key.to_string()));
                     resp.push(Value::Bulk(value.to_string()));
                 }
-                return Value::Array(resp);
+                Value::Array(resp)
             }
             None => Value::Null,
         }
