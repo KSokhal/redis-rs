@@ -1,10 +1,9 @@
 use anyhow::Result;
-use parser::Value;
+use parser::{parse, Value};
 use std::net::TcpListener;
 use std::sync::Arc;
 
 use crate::handler::{handler, Datastore};
-use crate::parser::RespReader;
 use crate::writer::RespWriter;
 
 mod handler;
@@ -19,9 +18,7 @@ fn main() -> Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
-                let mut parser = RespReader::new(&mut stream);
-
-                let value = parser.parse()?;
+                let value = parse(&mut stream)?;
 
                 let mut writer = RespWriter::new(stream);
 
@@ -39,3 +36,5 @@ fn main() -> Result<()> {
     }
     Ok(())
 }
+
+// Could convert RespReader to plain function to avoid having to create a struct, since only used in    main
